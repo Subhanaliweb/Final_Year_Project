@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - AI Service Hunting Tool</title>
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    />
+</head>
+<body>
+    {% include 'header.html' %}
+
+    <section class="hero">
+        <div class="container">
+            <h1>Login</h1>
+            <div class="formDiv">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                <form action="/login" method="post">
+                    <div>
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" name="username" required />
+                    </div>
+                    <div>
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" name="password" required />
+                    </div>
+                    <button class="btn" type="submit">Login</button>
+                </form>
+                <div class="formBottomDiv">
+                    <p>
+                        Don't have an account?
+                    </p>
+                    <a class="" href="/register"> Register here</a>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% include 'footer.html' %}
+</body>
+</html>

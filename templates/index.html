@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Service Hunting Tool</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body class="home">
+
+    {% include 'header.html' %}
+
+    <section class="hero">
+        <div class="container">
+            <h1 class="mainHeading"> <span style="color: var(--blue);">Explore </span> Top Services <span style="color: var(--blue);">Effortlessly</span></h1>
+            <p class="basicParagraph">Discover top services easily with our AI tool. It scrapes Fiverr data and uses NLP to find trends and keywords, helping you improve your service listings for better visibility.</p>
+            <div class="btns">
+                <a class="btn" href="{{ url_for('login') }}">Get Started</a>
+            </div>
+        </div>
+    </section>
+
+
+    {% include 'footer.html' %}
+
+    
+  </body>
+</html>

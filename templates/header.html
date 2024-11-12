@@ -1,0 +1,27 @@
+<header>
+  <div class="container">
+    <a href="/" class="logo">AI Based Service Hunting Tool</a>
+    <div class="headerRightCol">
+      <nav class="headerMenu">
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="{{ url_for('dashboard') }}">Search</a></li>
+          {% if 'username' not in session %}
+            <li><a href="{{ url_for('register') }}">Register</a></li>
+            <li><a href="{{ url_for('login') }}">Login</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% if 'username' in session %}
+      <div class="logoutForm">
+        <form action="{{ url_for('logout') }}" method="post">
+          <button class="btn" type="submit">Logout</button>
+        </form>
+      </div>
+      {% endif %}
+      <div class="hamburger">&#9776;</div>
+    </div>
+  </div>
+</header>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="../static/js/main.js"></script>
