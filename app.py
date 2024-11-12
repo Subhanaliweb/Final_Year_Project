@@ -151,24 +151,21 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.53 Safari/537.36"
 ]
 
-def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count=11):
+def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count=11, pages=1):
     base_url = 'https://www.fiverr.com/search/gigs'
     all_gigs = []
-    # all_gigs = getStaticGigs()
-    # return all_gigs
     gigs_fetched = 0  # Track the number of gigs fetched
 
-    for page in range(1, 5):  # Loop over pages
-        if gigs_fetched >= gigs_count:
-            break  # Stop if we've fetched enough gigs
+    ref_value = ''
+    if seller_types:
+        ref_value += 'seller_level:' + '|'.join(seller_types)
+    if seller_countries:
+        if ref_value:
+            ref_value += '|'
+        ref_value += 'seller_location:' + '|'.join(seller_countries)
 
-        ref_value = ''
-        if seller_types:
-            ref_value += 'seller_level:' + '|'.join(seller_types)
-        if seller_countries:
-            if ref_value:
-                ref_value += '|'
-            ref_value += 'seller_location:' + '|'.join(seller_countries)
+    # Loop through all pages up to the specified 'pages' count
+    for page in range(1, pages + 1):
         query_params = {
             'query': keywords,
             'source': 'drop_down_filters',
@@ -177,57 +174,65 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
         }
 
         url = base_url + '?' + '&'.join([f'{key}={value}' for key, value in query_params.items()])
-        print('hiting',url)
+        print(f'Hitting URL for page {page}:', url)
         headers = {'User-Agent': random.choice(USER_AGENTS), 'Accept-Language': 'en-US,en;q=0.9'}
 
         try:
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
+            # Retry with exponential backoff in case of failures
+            retries = 3
+            for attempt in range(retries):
+                try:
+                    response = requests.get(url, headers=headers)
+                    response.raise_for_status()
+                    break  # If successful, break out of retry loop
+                except requests.exceptions.RequestException as e:
+                    if attempt < retries - 1:
+                        print(f"Retrying ({attempt+1}/{retries})... Error: {e}")
+                        time.sleep(2 ** attempt + random.uniform(0, 1))  # Exponential backoff
+                    else:
+                        print("Max retries reached. Moving to the next page.")
+                        return all_gigs
+
+            if response.status_code == 403:
+                print(f"Blocked at page {page}. Stopping scrape.")
+                return all_gigs
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+            gigs = []
+
+            for gig in soup.find_all('div', class_='gig-wrapper-impressions'):
+                if gigs_fetched >= gigs_count:
+                    break  # Stop processing gigs if we've fetched enough
+
+                title = gig.find('p', {'role': 'heading'}).text.strip() if gig.find('p', {'role': 'heading'}) else 'N/A'
+                seller_rank = gig.find('p', class_='z58z872').text.strip() if gig.find('p', class_='z58z872') else 'N/A'
+                rating = gig.find('strong', class_='rating-score').text.strip() if gig.find('strong', class_='rating-score') else 'N/A'
+                price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else 'N/A'
+                relative_gig_url = gig.find('a', class_='relative')
+                gig_url = 'https://www.fiverr.com' + relative_gig_url['href'] if relative_gig_url else None
+                gig_details = scrape_gig_details(gig_url) if gig_url else {}
+
+                gigs.append({
+                    'title': title,
+                    'description': gig_details.get('description', 'N/A'),
+                    'sales': gig_details.get('sales_count', 'N/A'),
+                    'rating': rating,
+                    'price': price,
+                    'industry': gig_details.get('industry', 'N/A'),
+                    'platform': gig_details.get('platform', 'N/A'),
+                    'last_delivery': gig_details.get('last_delivery', 'N/A'),
+                    'seller_rank': seller_rank,
+                    'member_since': gig_details.get('member_since', 'N/A')
+                })
+                gigs_fetched += 1  # Increment the gigs count
+
+            all_gigs.extend(gigs)
+            time.sleep(random.uniform(5, 15))  # Pause between requests to avoid blocking
+
         except requests.exceptions.RequestException as e:
-            print(f"Request failed: {e}")
+            print(f"Error during request to Fiverr: {e}")
             time.sleep(random.uniform(10, 20))  # Retry delay
             continue
-
-        if response.status_code == 403:
-            print(f"Blocked at page {page}. Stopping scrape.")
-            break
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-        gigs = []
-
-        for gig in soup.find_all('div', class_='gig-wrapper-impressions'):
-            if gigs_fetched >= gigs_count:
-                break  # Stop processing gigs if we've fetched enough
-            
-            title = gig.find('p', {'role': 'heading'}).text.strip() if gig.find('p', {'role': 'heading'}) else 'N/A'
-            seller_rank = gig.find('p', class_='z58z872').text.strip() if gig.find('p', class_='z58z872') else 'N/A'
-            rating = gig.find('strong', class_='rating-score').text.strip() if gig.find('strong', class_='rating-score') else 'N/A'
-            # sales = gig.find('span', class_='rating-count-number').text.strip() if gig.find('span', class_='rating-count-number') else 'N/A'
-            price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else 'N/A'
-            relative_gig_url = gig.find('a', class_='relative')
-            gig_url = 'https://www.fiverr.com' + relative_gig_url['href'] if relative_gig_url else None
-            gig_details = scrape_gig_details(gig_url) if gig_url else {}
-
-            gigs.append({
-                'title': title, 
-                'description': gig_details.get('description', 'N/A'),
-                'sales': gig_details.get('sales_count', 'N/A'),
-                'rating': rating,
-                'price': price,
-                'industry': gig_details.get('industry', 'N/A'),
-                'platform': gig_details.get('platform', 'N/A'),
-                'last_delivery': gig_details.get('last_delivery','N/A'),
-                'seller_rank': seller_rank,
-                'member_since': gig_details.get('member_since', 'N/A')
-            })
-            # print('//////////////////',gigs)
-            gigs_fetched += 1  # Increment the gigs count
-
-        all_gigs.extend(gigs)
-        time.sleep(random.uniform(10, 20))
-
-        if gigs_fetched >= gigs_count:
-            break  # Exit loop once we've fetched enough gigs
 
     save_to_csv(all_gigs)  # Save the scraped gigs to a CSV file
     return all_gigs
