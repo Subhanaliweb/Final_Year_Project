@@ -268,5 +268,3 @@ def run_nlp_regression_route():
 
 if __name__ == '__main__':
     app.run(debug=True) 
-
-# asdsad
