@@ -10,7 +10,7 @@ import time # DON'T DELETE THIS
 import csv
 from data import getStaticGigs
 import subprocess
-from flask import Flask, render_template, request
+
 
 load_dotenv()
 
@@ -151,10 +151,10 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.53 Safari/537.36"
 ]
 
-def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count=11, pages=1):
+def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count=30):
     base_url = 'https://www.fiverr.com/search/gigs'
     all_gigs = []
-    gigs_fetched = 0  # Track the number of gigs fetched
+    gigs_fetched = 0
 
     ref_value = ''
     if seller_types:
@@ -164,77 +164,64 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
             ref_value += '|'
         ref_value += 'seller_location:' + '|'.join(seller_countries)
 
-    # Loop through all pages up to the specified 'pages' count
-    for page in range(1, pages + 1):
-        query_params = {
-            'query': keywords,
-            'source': 'drop_down_filters',
-            'ref': quote(ref_value),
-            'page': page
-        }
+    query_params = {
+        'query': keywords,
+        'source': 'drop_down_filters',
+        'ref': quote(ref_value),
+        'page': 1  # Only fetch the first page
+    }
 
-        url = base_url + '?' + '&'.join([f'{key}={value}' for key, value in query_params.items()])
-        print(f'Hitting URL for page {page}:', url)
-        headers = {'User-Agent': random.choice(USER_AGENTS), 'Accept-Language': 'en-US,en;q=0.9'}
+    url = base_url + '?' + '&'.join([f'{key}={value}' for key, value in query_params.items()])
+    print(f'Hitting URL for first page: {url}')
+    headers = {'User-Agent': random.choice(USER_AGENTS), 'Accept-Language': 'en-US,en;q=0.9'}
 
-        try:
-            # Retry with exponential backoff in case of failures
-            retries = 3
-            for attempt in range(retries):
-                try:
-                    response = requests.get(url, headers=headers)
-                    response.raise_for_status()
-                    break  # If successful, break out of retry loop
-                except requests.exceptions.RequestException as e:
-                    if attempt < retries - 1:
-                        print(f"Retrying ({attempt+1}/{retries})... Error: {e}")
-                        time.sleep(2 ** attempt + random.uniform(0, 1))  # Exponential backoff
-                    else:
-                        print("Max retries reached. Moving to the next page.")
-                        return all_gigs
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        
+        if response.status_code == 403:
+            print(f"Blocked while fetching the first page. Stopping scrape.")
+            return []
 
-            if response.status_code == 403:
-                print(f"Blocked at page {page}. Stopping scrape.")
-                return all_gigs
+        soup = BeautifulSoup(response.text, 'html.parser')
+        gigs = []
 
-            soup = BeautifulSoup(response.text, 'html.parser')
-            gigs = []
+        for gig in soup.find_all('div', class_='gig-wrapper-impressions'):
+            if gigs_fetched >= gigs_count:
+                break
 
-            for gig in soup.find_all('div', class_='gig-wrapper-impressions'):
-                if gigs_fetched >= gigs_count:
-                    break  # Stop processing gigs if we've fetched enough
+            title = gig.find('p', {'role': 'heading'}).text.strip() if gig.find('p', {'role': 'heading'}) else 'N/A'
+            seller_rank = gig.find('p', class_='z58z872').text.strip() if gig.find('p', class_='z58z872') else 'N/A'
+            rating = gig.find('strong', class_='rating-score').text.strip() if gig.find('strong', class_='rating-score') else 'N/A'
+            price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else 'N/A'
+            relative_gig_url = gig.find('a', class_='relative')
+            gig_url = 'https://www.fiverr.com' + relative_gig_url['href'] if relative_gig_url else None
+            gig_details = scrape_gig_details(gig_url) if gig_url else {}
 
-                title = gig.find('p', {'role': 'heading'}).text.strip() if gig.find('p', {'role': 'heading'}) else 'N/A'
-                seller_rank = gig.find('p', class_='z58z872').text.strip() if gig.find('p', class_='z58z872') else 'N/A'
-                rating = gig.find('strong', class_='rating-score').text.strip() if gig.find('strong', class_='rating-score') else 'N/A'
-                price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else 'N/A'
-                relative_gig_url = gig.find('a', class_='relative')
-                gig_url = 'https://www.fiverr.com' + relative_gig_url['href'] if relative_gig_url else None
-                gig_details = scrape_gig_details(gig_url) if gig_url else {}
+            gigs.append({
+                'title': title,
+                'description': gig_details.get('description', 'N/A'),
+                'sales': gig_details.get('sales_count', 'N/A'),
+                'rating': rating,
+                'price': price,
+                'industry': gig_details.get('industry', 'N/A'),
+                'platform': gig_details.get('platform', 'N/A'),
+                'last_delivery': gig_details.get('last_delivery', 'N/A'),
+                'seller_rank': seller_rank,
+                'member_since': gig_details.get('member_since', 'N/A')
+            })
+            gigs_fetched += 1
 
-                gigs.append({
-                    'title': title,
-                    'description': gig_details.get('description', 'N/A'),
-                    'sales': gig_details.get('sales_count', 'N/A'),
-                    'rating': rating,
-                    'price': price,
-                    'industry': gig_details.get('industry', 'N/A'),
-                    'platform': gig_details.get('platform', 'N/A'),
-                    'last_delivery': gig_details.get('last_delivery', 'N/A'),
-                    'seller_rank': seller_rank,
-                    'member_since': gig_details.get('member_since', 'N/A')
-                })
-                gigs_fetched += 1  # Increment the gigs count
+            # Add a 1-second delay between each gig scrape
+            time.sleep(1)
 
-            all_gigs.extend(gigs)
-            time.sleep(random.uniform(5, 15))  # Pause between requests to avoid blocking
+        all_gigs.extend(gigs)
+        time.sleep(random.uniform(5, 15))
 
-        except requests.exceptions.RequestException as e:
-            print(f"Error during request to Fiverr: {e}")
-            time.sleep(random.uniform(10, 20))  # Retry delay
-            continue
+    except requests.exceptions.RequestException as e:
+        print(f"Error during request to Fiverr: {e}")
 
-    save_to_csv(all_gigs)  # Save the scraped gigs to a CSV file
+    save_to_csv(all_gigs)
     return all_gigs
 
 def scrape_gig_details(gig_url):
@@ -256,13 +243,33 @@ def scrape_gig_details(gig_url):
             sales_count = 0  # Or 'N/A' if that's preferred
     else:
         sales_count = 0  # Or 'N/A'
+
+
+    user_stats = soup.select_one('ul.user-stats')
+    
+    # Check if user_stats is found before trying to access it
+    if user_stats:
+        member_since_text = user_stats.select_one('li:nth-child(2) strong').get_text(strip=True)
+
+        # Default value if not found
+        member_since_year = 'N/A'
+
+        # Extract year from the "Member since" text (assuming format "Month Year")
+        if member_since_text:
+            # Split the text and extract the year (assuming the format is "Month Year")
+            member_since_year = member_since_text.split()[-1]  # Take the last part, which should be the year
+    else:
+        member_since_year = 'N/A'  # Default value if user_stats is not found
+
+    print(f"Member since year: {member_since_year}")
+    
     return {
         'industry': soup.select_one('nav ol.zle7n00 li:nth-child(3) a').get_text(strip=True) if soup.select_one('nav ol.zle7n00 li:nth-child(3) a') else 'N/A',
         'platform': soup.select_one('nav ol.zle7n00 li:nth-child(7) a').get_text(strip=True) if soup.select_one('nav ol.zle7n00 li:nth-child(7) a') else 'N/A',
         'last_delivery': soup.select_one('.user-stats li:nth-child(4) strong').get_text(strip=True) if soup.select_one('.user-stats li:nth-child(4) strong') else 'N/A',
-        'member_since': soup.select_one('.user-stats li:nth-child(2) strong').get_text(strip=True) if soup.select_one('.user-stats li:nth-child(2) strong') else 'N/A',
         'description': soup.find('div', class_='description-content').get_text(separator='\n').strip() if soup.find('div', class_='description-content') else 'N/A',
-        'sales_count': sales_count  
+        'sales_count': sales_count,  
+        'member_since': member_since_year
     }
 
 @app.route('/run-nlp-regression', methods=['POST'])
