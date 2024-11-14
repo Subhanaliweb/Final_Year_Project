@@ -253,6 +253,7 @@ body.home .hero .btn {
 .checkboxes label {
   font-size: 14px;
   font-weight: 400 !important;
+  cursor: pointer;
 }
 .checkboxes > div input {
   width: fit-content;

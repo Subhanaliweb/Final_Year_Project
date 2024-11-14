@@ -23,10 +23,12 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.getenv('SECRET_KEY')
 db.init_app(app)
 
+# HOME ROUTE
 @app.route('/')
 def index():
     return render_template('index.html')
 
+# LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'username' in session:
@@ -43,17 +45,20 @@ def login():
 
     return render_template('login.html')
 
+# ANALYSIS ROUTE
 @app.route('/analysis')
 def analysis():
     if 'username' in session:
         return render_template('analysis.html')
     return redirect(url_for('login'))
 
+# LOGOUT ROUTE
 @app.route('/logout', methods=['POST'])
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# REGISTER ROUTE
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if 'username' in session:
@@ -73,12 +78,14 @@ def register():
 
     return render_template('register.html')
 
+# DASHBOARD ROUTE
 @app.route('/dashboard')
 def dashboard():
     if 'username' in session:
         return render_template('dashboard.html')
     return redirect(url_for('login'))
 
+# SEARCH ROUTE
 @app.route('/search', methods=['GET'])
 def search():
     if 'username' not in session:
@@ -95,10 +102,12 @@ def search():
     results = scrape_fiverr(keywords, seller_types, seller_countries)
     return render_template('search.html', results=results)
 
+# FUNCTION TO DELTE EXISITNG CSV
 def delete_existing_files():
     if os.path.exists('scraped_gigs.csv'):
         os.remove('scraped_gigs.csv')
 
+# FUNCTION TO CREATE CSV
 def save_to_csv(gigs):
     delete_existing_files()
     
@@ -160,7 +169,7 @@ def smooth_scroll(driver):
     if last_position >= scroll_height:
         return
 
-def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count=15):
+def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count=16):
     base_url = 'https://www.fiverr.com/search/gigs'
     all_gigs = []
     gigs_fetched = 0
@@ -181,7 +190,7 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
     }
 
     url = base_url + '?' + '&'.join([f'{key}={value}' for key, value in query_params.items()])
-    print(f'Hitting URL for first page: {url}')
+    print(f'Hitting URL: {url}')
 
     try:
         driver = setup_selenium_driver()
@@ -199,7 +208,8 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
             seller_rank = gig.find('p', class_='z58z872').text.strip() if gig.find('p', class_='z58z872') else 'N/A'
             rating = gig.find('strong', class_='rating-score').text.strip() if gig.find('strong', class_='rating-score') else 'N/A'
             price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else 'N/A'
-            relative_gig_url = gig.find('a', class_='relative')
+            # relative_gig_url = gig.find('a', class_='relative') or gig.find('a', class_='agency-contextual-link')
+            relative_gig_url = gig.select_one('a.relative, a.agency-contextual-link')
             gig_url = 'https://www.fiverr.com' + relative_gig_url['href'] if relative_gig_url else None
 
             gig_details = {}
@@ -211,7 +221,11 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
                         break
                 attempts += 1
                 time.sleep(2)  # Optional wait between retries
-
+        
+            # Check if "Level One Seller" is selected and if seller rank is not found
+            if "na" in seller_types and seller_rank == 'N/A':
+                seller_rank = "New Seller"  # Automatically set to "Level One"
+        
             gigs.append({
                 'title': title,
                 'description': gig_details.get('description', 'N/A'),
@@ -262,8 +276,8 @@ def scrape_gig_details(gig_url):
         'description': soup.find('div', class_='description-content').get_text(separator='\n').strip() if soup.find('div', class_='description-content') else 'N/A',
         'sales_count': sales_count,
         'industry': soup.select_one('nav ol.zle7n00 li:nth-child(3) a').get_text(strip=True) if soup.select_one('nav ol.zle7n00 li:nth-child(3) a') else 'N/A',
-        'platform': soup.select_one('nav ol.zle7n00 li:nth-child(4) a').get_text(strip=True) if soup.select_one('nav ol.zle7n00 li:nth-child(4) a') else 'N/A',
-        'last_delivery': soup.find('span', class_='last-delivery').get_text(strip=True) if soup.find('span', class_='last-delivery') else 'N/A',
+        'platform': soup.select_one('nav ol.zle7n00 li:last-child a').get_text(strip=True) if soup.select_one('nav ol.zle7n00 li:last-child a') else 'N/A',
+        'last_delivery': soup.select_one('.user-stats li:nth-child(4) strong').get_text(strip=True) if soup.select_one('.user-stats li:nth-child(4) strong') else 'N/A',
         'member_since': member_since_year
     }
 
