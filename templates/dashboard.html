@@ -97,14 +97,9 @@
         let form = $(this);
         let actionUrl = form.attr("action");
         let params = new URLSearchParams(new FormData(this));
-        console.log({params});
-        
-        
 
         // Convert + to %20 for space encoding
         let queryString = params.toString().replace(/\+/g, "%20");
-        console.log({queryString});
-        
 
         // Redirect to the properly encoded URL
         window.location.href = actionUrl + "?" + queryString;

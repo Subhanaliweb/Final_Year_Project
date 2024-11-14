@@ -6,10 +6,11 @@
         <ul>
           <li><a href="/">Home</a></li>
           <li><a href="{{ url_for('dashboard') }}">Search</a></li>
-          {% if 'username' not in session %}
-            <li><a href="{{ url_for('register') }}">Register</a></li>
-            <li><a href="{{ url_for('login') }}">Login</a></li>
-          {% endif %}
+          <li><a href="{{ url_for('analysis') }}">Analysis</a></li>
+          <!-- {% if 'username' not in session %} -->
+          <li><a href="{{ url_for('register') }}">Register</a></li>
+          <li><a href="{{ url_for('login') }}">Login</a></li>
+          <!-- {% endif %} -->
         </ul>
       </nav>
       {% if 'username' in session %}
