@@ -14,6 +14,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from fake_useragent import UserAgent
 
 load_dotenv()
 
@@ -22,6 +23,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.getenv('SECRET_KEY')
 db.init_app(app)
+
+# Configure headers with a rotating user agent
+def get_headers():
+    return {"User-Agent": UserAgent().random}
 
 # HOME ROUTE
 @app.route('/')
@@ -134,19 +139,6 @@ def save_to_csv(gigs):
 
     print(f"Data saved to {file_path}")
 
-USER_AGENTS = [
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.5 Safari/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.53 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Windows; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.114 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8",
-    "Mozilla/5.0 (Windows NT 10.0; Windows; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.114 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.53 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15",
-    "Mozilla/5.0 (Windows NT 10.0; Windows; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.114 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.53 Safari/537.36"
-]
-
 def setup_selenium_driver():
     options = Options()
     options.add_argument("--start-maximized")
@@ -186,7 +178,7 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
         'query': keywords,
         'source': 'drop_down_filters',
         'ref': quote(ref_value),
-        'page': 1
+        # 'page': 1
     }
 
     url = base_url + '?' + '&'.join([f'{key}={value}' for key, value in query_params.items()])
@@ -224,7 +216,7 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
         
             # Check if "Level One Seller" is selected and if seller rank is not found
             if "na" in seller_types and seller_rank == 'N/A':
-                seller_rank = "New Seller"  # Automatically set to "Level One"
+                seller_rank = "New Seller"  # Automatically set to "New Seller"
         
             gigs.append({
                 'title': title,
@@ -254,7 +246,7 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
 
 def scrape_gig_details(gig_url):
     try:
-        response = requests.get(gig_url, headers={'User-Agent': random.choice(USER_AGENTS)})
+        response = requests.get(gig_url, headers=get_headers())
         response.raise_for_status()
     except requests.exceptions.RequestException:
         return {}
