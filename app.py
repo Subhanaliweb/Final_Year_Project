@@ -15,6 +15,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from fake_useragent import UserAgent
+import re
 
 load_dotenv()
 
@@ -142,6 +143,8 @@ def save_to_csv(gigs):
 def setup_selenium_driver():
     options = Options()
     options.add_argument("--start-maximized")
+    options.add_argument("--disable-gpu")  # Disable GPU rendering
+    options.add_argument("--ignore-certificate-errors")  # Ignore SSL errors
     options.headless = False  # Set to False for visible browser window
     service = Service(executable_path='C:/chromedriver/chromedriver.exe')  # Update path to chromedriver
     driver = webdriver.Chrome(service=service, options=options)
@@ -161,7 +164,7 @@ def smooth_scroll(driver):
     if last_position >= scroll_height:
         return
 
-def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count=16):
+def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count=20):
     base_url = 'https://www.fiverr.com/search/gigs'
     all_gigs = []
     gigs_fetched = 0
@@ -195,12 +198,27 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
         for gig in soup.find_all('div', class_='gig-wrapper-impressions'):
             if gigs_fetched >= gigs_count:
                 break
+            
+            # Check if the gig has the "Pro" class (pro-experience)
+            if 'pro-experience' in gig.get('class', []):
+                continue  # Skip this gig if it's "Pro"
+            
+            # Check if the gig has the "Fiverr's Choice" badge
+            fiverr_choice_badge = gig.find('div', class_='z58z870 z58z87103 z58z871b7')
+            
+            # If Fiverr's Choice badge is found, skip the gig
+            if fiverr_choice_badge:
+                continue  # Skip this gig if it's "Fiverr's Choice"
 
             title = gig.find('p', {'role': 'heading'}).text.strip() if gig.find('p', {'role': 'heading'}) else 'N/A'
             seller_rank = gig.find('p', class_='z58z872').text.strip() if gig.find('p', class_='z58z872') else 'N/A'
-            rating = gig.find('strong', class_='rating-score').text.strip() if gig.find('strong', class_='rating-score') else 'N/A'
+            # price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else 'N/A'
+            
             price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else 'N/A'
-            # relative_gig_url = gig.find('a', class_='relative') or gig.find('a', class_='agency-contextual-link')
+            # Clean the price using regular expressions
+            if price != 'N/A':
+                price = re.sub(r'[^\d,]', '', price)  # Remove any non-digit and non-comma characters
+                
             relative_gig_url = gig.select_one('a.relative, a.agency-contextual-link')
             gig_url = 'https://www.fiverr.com' + relative_gig_url['href'] if relative_gig_url else None
 
@@ -214,7 +232,6 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
                 attempts += 1
                 time.sleep(2)  # Optional wait between retries
         
-            # Check if "Level One Seller" is selected and if seller rank is not found
             if "na" in seller_types and seller_rank == 'N/A':
                 seller_rank = "New Seller"  # Automatically set to "New Seller"
         
@@ -222,7 +239,7 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
                 'title': title,
                 'description': gig_details.get('description', 'N/A'),
                 'sales': gig_details.get('sales_count', 'N/A'),
-                'rating': rating,
+                'rating': gig_details.get('rating', 'N/A'),
                 'price': price,
                 'industry': gig_details.get('industry', 'N/A'),
                 'platform': gig_details.get('platform', 'N/A'),
@@ -267,6 +284,7 @@ def scrape_gig_details(gig_url):
     return {
         'description': soup.find('div', class_='description-content').get_text(separator='\n').strip() if soup.find('div', class_='description-content') else 'N/A',
         'sales_count': sales_count,
+        'rating' : soup.find('strong', class_='rating-score').text.strip() if soup.find('strong', class_='rating-score') else 'N/A',
         'industry': soup.select_one('nav ol.zle7n00 li:nth-child(3) a').get_text(strip=True) if soup.select_one('nav ol.zle7n00 li:nth-child(3) a') else 'N/A',
         'platform': soup.select_one('nav ol.zle7n00 li:last-child a').get_text(strip=True) if soup.select_one('nav ol.zle7n00 li:last-child a') else 'N/A',
         'last_delivery': soup.select_one('.user-stats li:nth-child(4) strong').get_text(strip=True) if soup.select_one('.user-stats li:nth-child(4) strong') else 'N/A',
