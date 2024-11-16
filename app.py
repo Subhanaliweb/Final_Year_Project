@@ -1,20 +1,19 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from models import db, User  # Import db and User from models.py
+from models import db, User 
 from bs4 import BeautifulSoup
-import requests
-import random
-from urllib.parse import quote
-from dotenv import load_dotenv
-import os
-import time
-import csv
-from data import getStaticGigs
-import subprocess
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from fake_useragent import UserAgent
+from urllib.parse import quote
+from dotenv import load_dotenv
+import requests
+import random
+import os
+import time
+import csv
+import subprocess
 import re
 
 load_dotenv()
@@ -113,18 +112,56 @@ def delete_existing_files():
     if os.path.exists('scraped_gigs.csv'):
         os.remove('scraped_gigs.csv')
 
+def convert_last_delivery_to_hours(last_delivery):
+    """
+    Converts 'last delivery' data into hours.
+    Example:
+    - 'about 9 hours' -> 9
+    - '1 week' -> 168 (7 days * 24 hours)
+    - '4 days' -> 96 (4 * 24 hours)
+    - 'about 57 minutes' -> 1 (rounded up)
+    - 'just now' -> 0 (considered as 0 hours)
+    """
+    if not last_delivery or last_delivery.lower() == 'n/a':
+        return None  # Handle missing or invalid data gracefully
+
+    # Handle 'just now' or 'Just Now' case
+    if 'just now' in last_delivery.lower():
+        return 0  # Treat 'just now' as 0 hours
+    
+    # Regular expressions for matching time units (support both singular and plural)
+    weeks = re.search(r"(\d+)\s*week[s]?", last_delivery, re.IGNORECASE)
+    days = re.search(r"(\d+)\s*day[s]?", last_delivery, re.IGNORECASE)
+    hours = re.search(r"(\d+)\s*hour[s]?", last_delivery, re.IGNORECASE)
+    minutes = re.search(r"(\d+)\s*minute[s]?", last_delivery, re.IGNORECASE)
+
+    total_hours = 0
+
+    if weeks:
+        total_hours += int(weeks.group(1)) * 7 * 24
+    if days:
+        total_hours += int(days.group(1)) * 24
+    if hours:
+        total_hours += int(hours.group(1))
+    if minutes:
+        total_hours += 1  # Round up minutes to 1 hour
+
+    return total_hours
+
 # FUNCTION TO CREATE CSV
 def save_to_csv(gigs):
     delete_existing_files()
     
     file_path = 'scraped_gigs.csv'
-    headers = ['Title', 'Description', 'Sales', 'Rating', 'Price', 'Industry', 'Platform', 'Last Delivery', 'Seller Rank', 'Member Since']
+    headers = ['Title', 'Description', 'Sales', 'Rating', 'Price', 'Industry', 'Platform', 
+               'Last Delivery', 'Seller Rank', 'Member Since']
     
     with open(file_path, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.DictWriter(file, fieldnames=headers)
         writer.writeheader()
         
         for gig in gigs:
+            last_delivery_hours = convert_last_delivery_to_hours(gig['last_delivery'])
             writer.writerow({
                 'Title': gig['title'],
                 'Description': gig['description'],
@@ -133,7 +170,7 @@ def save_to_csv(gigs):
                 'Price': gig['price'],
                 'Industry': gig['industry'],
                 'Platform': gig['platform'],
-                'Last Delivery': gig['last_delivery'],
+                'Last Delivery': last_delivery_hours,
                 'Seller Rank': gig['seller_rank'],
                 'Member Since': gig['member_since'],
             })
@@ -145,7 +182,7 @@ def setup_selenium_driver():
     options.add_argument("--start-maximized")
     options.add_argument("--disable-gpu")  # Disable GPU rendering
     options.add_argument("--ignore-certificate-errors")  # Ignore SSL errors
-    options.headless = False  # Set to False for visible browser window
+    options.headless = False   # Set to False for visible browser window
     service = Service(executable_path='C:/chromedriver/chromedriver.exe')  # Update path to chromedriver
     driver = webdriver.Chrome(service=service, options=options)
     return driver
@@ -153,7 +190,7 @@ def setup_selenium_driver():
 def smooth_scroll(driver):
     last_position = driver.execute_script("return window.pageYOffset;")
     while True:
-        driver.execute_script("window.scrollBy(0, 100);")
+        driver.execute_script("window.scrollBy(0, 200);")
         time.sleep(2)
         new_position = driver.execute_script("return window.pageYOffset;")
         if new_position == last_position:
@@ -164,7 +201,9 @@ def smooth_scroll(driver):
     if last_position >= scroll_height:
         return
 
-def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count=20):
+
+
+def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count=10):
     base_url = 'https://www.fiverr.com/search/gigs'
     all_gigs = []
     gigs_fetched = 0
@@ -181,7 +220,6 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
         'query': keywords,
         'source': 'drop_down_filters',
         'ref': quote(ref_value),
-        # 'page': 1
     }
 
     url = base_url + '?' + '&'.join([f'{key}={value}' for key, value in query_params.items()])
@@ -199,10 +237,10 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
             if gigs_fetched >= gigs_count:
                 break
             
-            # Check if the gig has the "Pro" class (pro-experience)
-            if 'pro-experience' in gig.get('class', []):
-                continue  # Skip this gig if it's "Pro"
-            
+            skip_classes = {'pro-experience', 'agency-card-v2'}
+            if any(cls in skip_classes for cls in gig.get('class', [])):
+                continue
+                        
             # Check if the gig has the "Fiverr's Choice" badge
             fiverr_choice_badge = gig.find('div', class_='z58z870 z58z87103 z58z871b7')
             
@@ -215,11 +253,12 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
             # price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else 'N/A'
             
             price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else 'N/A'
-            # Clean the price using regular expressions
+
+            # Clean the price by removing commas and non-numeric characters
             if price != 'N/A':
-                price = re.sub(r'[^\d,]', '', price)  # Remove any non-digit and non-comma characters
+                price = re.sub(r'[^\d]', '', price)  # Remove all non-digit characters
                 
-            relative_gig_url = gig.select_one('a.relative, a.agency-contextual-link')
+            relative_gig_url = gig.select_one('a.relative')
             gig_url = 'https://www.fiverr.com' + relative_gig_url['href'] if relative_gig_url else None
 
             gig_details = {}
@@ -251,7 +290,7 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
             time.sleep(1)
 
         all_gigs.extend(gigs)
-        time.sleep(random.uniform(5, 15))
+        time.sleep(random.uniform(2, 8))
 
         driver.quit()
 
@@ -260,6 +299,18 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
 
     save_to_csv(all_gigs)
     return all_gigs
+
+def parse_sales_count(sales_text):
+    """
+    Parses sales count strings like '2.5k' or '1.5M' to integers.
+    'k' means thousands, 'M' means millions.
+    """
+    if 'k' in sales_text.lower():
+        return int(float(sales_text.replace('k', '').replace('K', '').strip()) * 1000)
+    elif 'm' in sales_text.lower():
+        return int(float(sales_text.replace('m', '').replace('M', '').strip()) * 1000000)
+    else:
+        return int(sales_text.strip().replace(',', ''))  # Clean commas and convert
 
 def scrape_gig_details(gig_url):
     try:
@@ -270,9 +321,16 @@ def scrape_gig_details(gig_url):
 
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    # Extract details here with default fallback
+    # # Extract sales count with the helper function
+    # sales_count_text = soup.find('span', class_='rating-count-number') or soup.select_one('.seller-card button span.zle7n0d')
+    # sales_count = parse_sales_count(sales_count_text.get_text(strip=True).replace(',', '')) if sales_count_text else 0
+
+    # Extract sales count with the helper function
     sales_count_text = soup.find('span', class_='rating-count-number')
-    sales_count = int(sales_count_text.get_text(strip=True).replace(',', '')) if sales_count_text else 0
+    if not sales_count_text:
+        sales_count_text = soup.select_one('.seller-card button span.zle7n0d')
+
+    sales_count = parse_sales_count(sales_count_text.get_text(strip=True).replace(',', '')) if sales_count_text else 0
 
     user_stats = soup.select_one('ul.user-stats')
     member_since_year = 'N/A'

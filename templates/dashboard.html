@@ -84,13 +84,6 @@
 
   <script>
     jQuery(document).ready(function ($) {
-      $("input[name='seller_types']").on("change", function () {
-        $("input[name='seller_types']").not(this).prop("checked", false);
-      });
-
-      $("input[name='seller_countries']").on("change", function () {
-        $("input[name='seller_countries']").not(this).prop("checked", false);
-      });
       $("#listingForm").on("submit", function (e) {
         e.preventDefault(); // Prevent default form submission
 
