@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard</title>
+  <link rel="shortcut icon" href="../static/images/favicon.png" type="image/x-icon">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
 
@@ -20,24 +21,24 @@
         <div class="formDiv searchForm">
           <h4>Search here</h4>
           <form action="{{ url_for('search') }}" method="get" id="listingForm">
-            <input type="text" name="keywords" id="keywords" placeholder="Keywords" required />
+            <input type="text" name="keywords" id="keywords" placeholder="Keywords" />
             <div class="checkboxes">
               <label class="sellerTypesLabel">Seller Types:</label>
               <div class="checkboxesInner">
                 <div>
-                  <input type="checkbox" name="seller_types" id="checkbox1" value="level_one_seller" />
+                  <input type="checkbox" name="seller_types[]" id="checkbox1" value="level_one_seller" />
                   <label for="checkbox1">Level One</label>
                 </div>
                 <div>
-                  <input type="checkbox" name="seller_types" id="checkbox2" value="level_two_seller" />
+                  <input type="checkbox" name="seller_types[]" id="checkbox2" value="level_two_seller" />
                   <label for="checkbox2">Level Two</label>
                 </div>
                 <div>
-                  <input type="checkbox" name="seller_types" id="checkbox3" value="na" />
+                  <input type="checkbox" name="seller_types[]" id="checkbox3" value="na" />
                   <label for="checkbox3">New Seller</label>
                 </div>
                 <div>
-                  <input type="checkbox" name="seller_types" id="checkbox4" value="top_rated_seller" />
+                  <input type="checkbox" name="seller_types[]" id="checkbox4" value="top_rated_seller" />
                   <label for="checkbox4">Top Rated</label>
                 </div>
               </div>
@@ -46,27 +47,27 @@
               <label class="sellerTypesLabel">Seller Location:</label>
               <div class="checkboxesInner">
                 <div>
-                  <input type="checkbox" name="seller_countries" id="checkbox1Location" value="" />
+                  <input type="checkbox" name="seller_countries[]" id="checkbox1Location" value="" />
                   <label for="checkbox1Location">All</label>
                 </div>
                 <div>
-                  <input type="checkbox" name="seller_countries" id="checkbox2Location" value="PK" />
+                  <input type="checkbox" name="seller_countries[]" id="checkbox2Location" value="PK" />
                   <label for="checkbox2Location">Pakistan</label>
                 </div>
                 <div>
-                  <input type="checkbox" name="seller_countries" id="checkbox3Location" value="IN" />
+                  <input type="checkbox" name="seller_countries[]" id="checkbox3Location" value="IN" />
                   <label for="checkbox3Location">India</label>
                 </div>
                 <div>
-                  <input type="checkbox" name="seller_countries" id="checkbox4Location" value="US" />
+                  <input type="checkbox" name="seller_countries[]" id="checkbox4Location" value="US" />
                   <label for="checkbox4Location">USA</label>
                 </div>
                 <div>
-                  <input type="checkbox" name="seller_countries" id="checkbox5Location" value="GB" />
+                  <input type="checkbox" name="seller_countries[]" id="checkbox5Location" value="GB" />
                   <label for="checkbox5Location">UK</label>
                 </div>
                 <div>
-                  <input type="checkbox" name="seller_countries" id="checkbox6Location" value="BD" />
+                  <input type="checkbox" name="seller_countries[]" id="checkbox6Location" value="BD" />
                   <label for="checkbox6Location">Bangladesh</label>
                 </div>
               </div>
@@ -85,20 +86,57 @@
   <script>
     jQuery(document).ready(function ($) {
       $("#listingForm").on("submit", function (e) {
-        e.preventDefault(); // Prevent default form submission
+        e.preventDefault();  // Prevent form submission from refreshing the page
 
         let form = $(this);
-        let actionUrl = form.attr("action");
-        let params = new URLSearchParams(new FormData(this));
+        let formData = new FormData(this);
 
-        // Convert + to %20 for space encoding
-        let queryString = params.toString().replace(/\+/g, "%20");
+        let keywords = formData.get("keywords").trim();
+        if (!keywords) {
+          alert("Please enter keywords for the search.");
+          return;
+        }
 
-        // Redirect to the properly encoded URL
-        window.location.href = actionUrl + "?" + queryString;
+        let sellerTypes = formData.getAll("seller_types[]");
+        let sellerCountries = formData.getAll("seller_countries[]").filter(val => val); // Exclude empty values (e.g., "All")
+
+        // Build the 'ref' parameter
+        let filterParameters = [];
+        if (sellerTypes.length > 0) {
+          filterParameters.push("seller_level%3A" + sellerTypes.join("%2C")); // Join types with commas
+        }
+        if (sellerCountries.length > 0) {
+          filterParameters.push("seller_location%3A" + sellerCountries.join("%2C")); // Join countries with commas
+        }
+
+        let refParam = filterParameters.length > 0 ? "&ref=" + filterParameters.join("%7C") : "";
+
+        // Include 'source=drop_down_filters' only if filters are applied
+        let sourceParam = filterParameters.length > 0 ? "&source=drop_down_filters" : "";
+
+        // Final URL
+        let finalUrl = `https://www.fiverr.com/search/gigs?query=${encodeURIComponent(keywords)}${sourceParam}${refParam}`;
+        console.log(finalUrl); // Debugging: View the generated URL
+
+        // Append finalUrl to form data
+        let finalUrlInput = $('<input>').attr({
+          type: 'hidden',
+          name: 'finalUrl',
+          value: finalUrl
+        });
+
+        form.append(finalUrlInput); // Add the hidden input to the form
+
+        // Now submit the form with the finalUrl parameter included
+        form.off('submit').submit();
+
       });
+
+
+
     });
   </script>
+
 </body>
 
 </html>

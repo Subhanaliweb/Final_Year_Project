@@ -40,9 +40,7 @@ def run_analysis():
     data['Desc_Keyword_Count'] = desc_keywords_matrix.sum(axis=1).A1
 
     # Convert 'Last Delivery' to numeric days for time analysis
-    data['Last Delivery (days)'] = data['Last Delivery'].apply(
-        lambda x: int(re.search(r'\d+', x).group()) if pd.notnull(x) else np.nan
-    )
+    data['Last Delivery (days)'] = pd.to_numeric(data['Last Delivery'], errors='coerce')
 
     # Correlation analysis between Sales, Rating, Price, and keyword counts
     correlation_matrix = data[['Sales', 'Rating', 'Price', 'Title_Keyword_Count', 
@@ -93,6 +91,7 @@ def run_analysis():
     sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f")
     plt.title('Correlation Matrix')
     plt.show()
+    time.sleep(2)
 
     # --- 3. Regression Results Scatter Plot ---
     # Scatter plot for actual vs predicted Sales
@@ -111,12 +110,20 @@ def run_analysis():
     time.sleep(2)
     fig.show()
 
-
     fig = px.scatter(data, x='Desc_Keyword_Count', y='Sales', color='Price',
                     title="Sales by Description Keyword Count",
                     labels={'Desc_Keyword_Count': 'Keyword Count in Description', 'Sales': 'Total Sales'})
     time.sleep(3)
     fig.show()
 
+    # Calculate and print the mean of the sales
+    mean_sales = y_test.mean()
+    print(f"Mean Sales: {mean_sales}")
+
+    # Calculate and print the R² score of the model
+    r2 = r2_score(y_test, y_pred)
+    print(f"R² Score: {r2}")
+
 if __name__ == '__main__':
     run_analysis()
+

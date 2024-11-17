@@ -281,10 +281,14 @@ body.home .hero {
 }
 .searchForm input {
   margin-bottom: 20px;
+  font-size: 16px;
 }
 .dashboardForms {
   display: flex;
   gap: 50px;
+}
+.dashboardForms button{
+  margin-top: 10px;
 }
 .userName{
   color: var(--blue);

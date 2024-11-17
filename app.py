@@ -4,9 +4,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 from fake_useragent import UserAgent
-from urllib.parse import quote
 from dotenv import load_dotenv
 import requests
 import random
@@ -15,6 +13,7 @@ import time
 import csv
 import subprocess
 import re
+from urllib.parse import urlparse, parse_qs
 
 load_dotenv()
 
@@ -96,15 +95,17 @@ def search():
     if 'username' not in session:
         return redirect(url_for('login'))
 
-    keywords = request.args.get('keywords', '').strip().replace(' ', '%20')
-    seller_types = request.args.getlist('seller_types')  # Optional field
-    seller_countries = request.args.getlist('seller_countries')  # Optional field
-
-    if not keywords:
-        flash("Keywords are required", "danger")
+    # Get finalUrl directly from the request arguments
+    final_url = request.args.get('finalUrl')
+    print(f"final_url received: {final_url}")   
+    
+    if not final_url:
+        flash("finalUrl is required", "danger")
         return redirect(url_for('dashboard'))
 
-    results = scrape_fiverr(keywords, seller_types, seller_countries)
+    # Pass finalUrl directly to the scrape function
+    results = scrape_fiverr(final_url)
+
     return render_template('search.html', results=results)
 
 # FUNCTION TO DELTE EXISITNG CSV
@@ -190,7 +191,7 @@ def setup_selenium_driver():
 def smooth_scroll(driver):
     last_position = driver.execute_script("return window.pageYOffset;")
     while True:
-        driver.execute_script("window.scrollBy(0, 200);")
+        driver.execute_script("window.scrollBy(0, 250);")
         time.sleep(2)
         new_position = driver.execute_script("return window.pageYOffset;")
         if new_position == last_position:
@@ -203,31 +204,16 @@ def smooth_scroll(driver):
 
 
 
-def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count=10):
-    base_url = 'https://www.fiverr.com/search/gigs'
+def scrape_fiverr(final_url, gigs_count=10):
     all_gigs = []
     gigs_fetched = 0
 
-    ref_value = ''
-    if seller_types:
-        ref_value += 'seller_level:' + '|'.join(seller_types)
-    if seller_countries:
-        if ref_value:
-            ref_value += '|'
-        ref_value += 'seller_location:' + '|'.join(seller_countries)
+    print(f'Hitting URL: {final_url}')
 
-    query_params = {
-        'query': keywords,
-        'source': 'drop_down_filters',
-        'ref': quote(ref_value),
-    }
-
-    url = base_url + '?' + '&'.join([f'{key}={value}' for key, value in query_params.items()])
-    print(f'Hitting URL: {url}')
-
+    driver = setup_selenium_driver()
     try:
-        driver = setup_selenium_driver()
-        driver.get(url)
+        driver.get(final_url)
+        time.sleep(3)
         smooth_scroll(driver)
         
         soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -248,18 +234,16 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
             if fiverr_choice_badge:
                 continue  # Skip this gig if it's "Fiverr's Choice"
 
-            title = gig.find('p', {'role': 'heading'}).text.strip() if gig.find('p', {'role': 'heading'}) else 'N/A'
-            seller_rank = gig.find('p', class_='z58z872').text.strip() if gig.find('p', class_='z58z872') else 'N/A'
-            # price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else 'N/A'
-            
-            price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else 'N/A'
+            title = gig.find('p', {'role': 'heading'}).text.strip() if gig.find('p', {'role': 'heading'}) else None
+            seller_rank = gig.find('p', class_='z58z872').text.strip() if gig.find('p', class_='z58z872') else None
+            price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else None
 
             # Clean the price by removing commas and non-numeric characters
-            if price != 'N/A':
+            if price != None:
                 price = re.sub(r'[^\d]', '', price)  # Remove all non-digit characters
                 
             relative_gig_url = gig.select_one('a.relative')
-            gig_url = 'https://www.fiverr.com' + relative_gig_url['href'] if relative_gig_url else None
+            gig_url = f"https://www.fiverr.com{relative_gig_url['href']}" if relative_gig_url else None
 
             gig_details = {}
             attempts = 0
@@ -270,9 +254,6 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
                         break
                 attempts += 1
                 time.sleep(2)  # Optional wait between retries
-        
-            if "na" in seller_types and seller_rank == 'N/A':
-                seller_rank = "New Seller"  # Automatically set to "New Seller"
         
             gigs.append({
                 'title': title,
@@ -290,7 +271,7 @@ def scrape_fiverr(keywords, seller_types=None, seller_countries=None, gigs_count
             time.sleep(1)
 
         all_gigs.extend(gigs)
-        time.sleep(random.uniform(2, 8))
+        time.sleep(random.uniform(2, 4))
 
         driver.quit()
 
@@ -320,10 +301,6 @@ def scrape_gig_details(gig_url):
         return {}
 
     soup = BeautifulSoup(response.text, 'html.parser')
-
-    # # Extract sales count with the helper function
-    # sales_count_text = soup.find('span', class_='rating-count-number') or soup.select_one('.seller-card button span.zle7n0d')
-    # sales_count = parse_sales_count(sales_count_text.get_text(strip=True).replace(',', '')) if sales_count_text else 0
 
     # Extract sales count with the helper function
     sales_count_text = soup.find('span', class_='rating-count-number')
