@@ -8,10 +8,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 import seaborn as sns
 import time
+import sys
 
-def run_analysis():
+def run_analysis(file_path):
     # Load data
-    file_path = 'scraped_gigs.csv'  # Change to your file path
     data = pd.read_csv(file_path)
 
     # Clean Price column by removing non-numeric characters
@@ -125,5 +125,9 @@ def run_analysis():
     print(f"R² Score: {r2}")
 
 if __name__ == '__main__':
-    run_analysis()
-
+    if len(sys.argv) < 2:
+        print("Error: Missing file path argument.")
+        sys.exit(1)
+    # Get file path from command line arguments
+    file_path = sys.argv[1]
+    run_analysis(file_path)

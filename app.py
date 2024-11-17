@@ -1,9 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from models import db, User 
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 from fake_useragent import UserAgent
 from dotenv import load_dotenv
 import requests
@@ -178,6 +182,9 @@ def save_to_csv(gigs):
 
     print(f"Data saved to {file_path}")
 
+
+
+
 def setup_selenium_driver():
     options = Options()
     options.add_argument("--start-maximized")
@@ -202,9 +209,16 @@ def smooth_scroll(driver):
     if last_position >= scroll_height:
         return
 
+def wait_for_elements(driver):
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'div.gig-page'))
+        )
+    except TimeoutException:
+        print("Timed out waiting for elements")
 
 
-def scrape_fiverr(final_url, gigs_count=10):
+def scrape_fiverr(final_url, gigs_count=40):
     all_gigs = []
     gigs_fetched = 0
 
@@ -213,8 +227,10 @@ def scrape_fiverr(final_url, gigs_count=10):
     driver = setup_selenium_driver()
     try:
         driver.get(final_url)
-        time.sleep(3)
+        time.sleep(5)
         smooth_scroll(driver)
+
+        wait_for_elements(driver)  # Wait for the gig URLs to appear
         
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         gigs = []
@@ -243,12 +259,16 @@ def scrape_fiverr(final_url, gigs_count=10):
                 price = re.sub(r'[^\d]', '', price)  # Remove all non-digit characters
                 
             relative_gig_url = gig.select_one('a.relative')
-            gig_url = f"https://www.fiverr.com{relative_gig_url['href']}" if relative_gig_url else None
+            if relative_gig_url:
+                gig_url = f"https://www.fiverr.com{relative_gig_url['href']}"
+            else:
+                gig_url = None
 
             gig_details = {}
             attempts = 0
             while attempts < 3:
                 if gig_url:
+                    time.sleep(2)
                     gig_details = scrape_gig_details(gig_url)
                     if gig_details:  # Check if data was successfully fetched
                         break
@@ -268,7 +288,7 @@ def scrape_fiverr(final_url, gigs_count=10):
                 'member_since': gig_details.get('member_since', 'N/A')
             })
             gigs_fetched += 1
-            time.sleep(1)
+            time.sleep(2)
 
         all_gigs.extend(gigs)
         time.sleep(random.uniform(2, 4))
@@ -326,11 +346,100 @@ def scrape_gig_details(gig_url):
         'member_since': member_since_year
     }
 
+
+# Flask route to receive filter data
+@app.route('/custom-filters', methods=['POST'])
+def custom_filters():
+    if request.is_json:
+        filter_data = request.get_json()
+        listings_started = filter_data.get('listings_started')
+        min_sales = filter_data.get('sales_count')
+        min_rating = filter_data.get('rating')
+        
+        # Convert filters as needed
+        start_year = int(listings_started) if listings_started else None
+        min_sales = int(min_sales) if min_sales else None
+        min_rating = float(min_rating) if min_rating else None
+
+        # Apply filters and generate filtered CSV
+        apply_filters_and_save(start_year=start_year, min_sales=min_sales, min_rating=min_rating)
+
+        return jsonify({"message": "Filters applied successfully, filtered CSV generated!"}), 200
+    else:
+        return jsonify({"error": "Invalid request format"}), 400
+
+
+# Function to filter data and save to a new CSV
+def apply_filters_and_save(start_year=None, min_rating=None, min_sales=None):
+    input_file = 'scraped_gigs.csv'
+    output_file = 'filtered_gigs.csv'
+
+    try:
+        with open(input_file, mode='r', newline='', encoding='utf-8') as infile:
+            reader = csv.DictReader(infile)
+            filtered_gigs = []
+            
+            for row in reader:
+                # Filter by start year
+                if start_year and int(row['Member Since']) < start_year:
+                    continue
+                
+                # Filter by minimum rating
+                if min_rating and float(row['Rating']) < min_rating:
+                    continue
+                
+                # Filter by maximum price
+                if min_sales and float(row['Sales']) < min_sales:
+                    continue
+                
+                # Add row if all conditions pass
+                filtered_gigs.append(row)
+        
+        # Save filtered data to a new CSV file
+        with open(output_file, mode='w', newline='', encoding='utf-8') as outfile:
+            writer = csv.DictWriter(outfile, fieldnames=reader.fieldnames)
+            writer.writeheader()
+            writer.writerows(filtered_gigs)
+        
+        print(f"Filtered data saved to {output_file}")
+    except Exception as e:
+        print(f"Error during filtering: {e}")
+
+
 @app.route('/run-nlp-regression', methods=['POST'])
 def run_nlp_regression_route():
-    # This will run the external script to open the GUI
-    subprocess.Popen(['python', 'run_analysis.py'])
-    return "NLP Regression GUI launched!", 200
+    try:
+        # Extract file path from request JSON
+        data = request.get_json()
+        file_path = data.get('file_path')
+
+        if not file_path:
+            return jsonify({"message": "File path is required!"}), 400
+
+        # Pass file path as an argument to the subprocess
+        subprocess.Popen(['python', 'run_analysis.py', file_path])
+
+        return jsonify({"message": "Analysis GUI launching..."}), 200
+    except Exception as e:
+        return jsonify({"message": f"Failed to launch Analysis GUI: {str(e)}"}), 500
+
+# Route for filtered results (you can define the logic for filtered data)
+@app.route('/view-filtered-results', methods=['POST'])
+def view_filtered_results():
+    try:
+        # Extract file path from request JSON
+        data = request.get_json()
+        file_path = data.get('file_path')
+
+        if not file_path:
+            return jsonify({"message": "File path is required!"}), 400
+
+        # Pass file path as an argument to the subprocess
+        subprocess.Popen(['python', 'run_analysis.py', file_path])
+
+        return jsonify({"message": "Filtered Analysis GUI launching..."}), 200
+    except Exception as e:
+        return jsonify({"message": f"Failed to load filtered analysis: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True) 

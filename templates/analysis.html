@@ -18,12 +18,13 @@
             <div class="analysisBtnWrapper">
                 <h1>View Analysis</h1>
                 <div>
-                    <button id="run-nlp-regression" class="btn" onclick="runNLPRegression()">Run Analysis</button>
+                    <button id="run-nlp-regression" class="btn" onclick="runNLPRegression('scraped_gigs.csv')">Run
+                        Analysis</button>
                 </div>
             </div>
 
             <h2>Select Criteria for Analysis</h2>
-            <form action="" id="analysisFiltersForm">
+            <form id="analysisFiltersForm">
                 <div class="analysisFiltersWrapper">
                     <div>
                         <div class="analysisFilter filter1">
@@ -55,6 +56,8 @@
                                     <option value="100">More than 100</option>
                                     <option value="200">More than 200</option>
                                     <option value="500">More than 500</option>
+                                    <option value="1000">More than 1000</option>
+                                    <option value="2000">More than 2000</option>
                                 </select>
                         </div>
 
@@ -67,12 +70,16 @@
                                 <option value="4.0">Above 4.0</option>
                                 <option value="3.5">Above 3.5</option>
                                 <option value="3.0">Above 3.0</option>
+                                <option value="2.5">Above 2.5</option>
                             </select>
                         </div>
                     </div>
                     <button class="btn" type="submit">Apply</button>
                 </div>
             </form>
+            <div class="viewFilteredBtnWrapper">
+                <a class="btn" onclick="filteredResults('filtered_gigs.csv')">View Filtered Analysis</a>
+            </div>
         </div>
     </section>
 
@@ -83,17 +90,44 @@
     <script>
         $("#analysisFiltersForm").on("submit", function (e) {
             e.preventDefault();
-            // Get the selected values
+
+            // Gather the selected filter data
             const listingsStarted = document.getElementById('listings-started').value;
             const salesCount = document.getElementById('sales-count').value;
             const rating = document.getElementById('rating').value;
 
-            // Print the values to the console
-            console.log('Listings Started: ' + listingsStarted);
-            console.log('Sales Count: ' + salesCount);
-            console.log('Rating: ' + rating);
-        });
+            // Check if all filters are empty
+            if (!listingsStarted && !salesCount && !rating) {
+                setTimeout(function () {
+                    alert("No filters applied!");
+                }, 1000);
+                return; // Stop the submission
+            }
 
+            // Prepare the data payload
+            const filterData = {
+                listings_started: listingsStarted,
+                sales_count: salesCount,
+                rating: rating
+            };
+            console.log(filterData);
+
+            // Send the data via AJAX to the /custom-filters route
+            $.ajax({
+                url: '/custom-filters',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(filterData),
+                success: function (response) {
+                    console.log('Server response:', response);
+                    alert("Filters applied successfully!");
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error:', error);
+                    alert("An error occurred while applying the filters.");
+                }
+            });
+        });
     </script>
 </body>
 

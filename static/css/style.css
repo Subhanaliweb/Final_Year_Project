@@ -91,14 +91,12 @@ footer {
 footer {
   text-align: center;
   color: var(--main-color);
-  /* position: fixed; */
-  /* bottom: 0; */
-  /* width: 100%; */
 }
 .container {
   max-width: 1240px;
   margin: 0 auto;
 }
+
 .btn {
   background-color: var(--main-color);
   border-radius: 100px;
@@ -112,6 +110,7 @@ footer {
   transition: all 0.3s;
   border: 1px solid var(--main-color);
   display: inline-block;
+  font-size: 16px;
 }
 .btn:hover {
   background-color: whitesmoke;
@@ -378,15 +377,22 @@ body.home .hero {
   min-width: 200px;
   cursor: pointer;
 }
-.analysisFiltersWrapper select option[value=""] {
+/* .analysisFiltersWrapper select option[value=""] {
   display: none;
-}
+} */
 .analysisBtnWrapper{
   text-align: center;
   margin-bottom: 100px;
 }
 .analysisBtnWrapper .btn{
 border-color: white;
+}
+.viewFilteredBtnWrapper{
+  text-align: center;
+  margin-top: 50px;
+}
+.viewFilteredBtnWrapper .btn{
+  border-color:  white;
 }
 /* 
 .container{
