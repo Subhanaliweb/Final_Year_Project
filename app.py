@@ -268,12 +268,12 @@ def scrape_fiverr(final_url, gigs_count=40):
             attempts = 0
             while attempts < 3:
                 if gig_url:
-                    time.sleep(2)
+                    time.sleep(3)
                     gig_details = scrape_gig_details(gig_url)
                     if gig_details:  # Check if data was successfully fetched
                         break
                 attempts += 1
-                time.sleep(2)  # Optional wait between retries
+                time.sleep(3)  # Optional wait between retries
         
             gigs.append({
                 'title': title,
