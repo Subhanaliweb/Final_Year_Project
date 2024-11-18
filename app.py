@@ -81,7 +81,7 @@ def register():
             user.set_password(password)
             db.session.add(user)
             db.session.commit()
-            flash('Successfully registered! Please log in.', 'success')
+            flash('Successfully registered!', 'success')
             return redirect(url_for('login'))
 
     return render_template('register.html')
@@ -209,16 +209,7 @@ def smooth_scroll(driver):
     if last_position >= scroll_height:
         return
 
-def wait_for_elements(driver):
-    try:
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'div.gig-page'))
-        )
-    except TimeoutException:
-        print("Timed out waiting for elements")
-
-
-def scrape_fiverr(final_url, gigs_count=40):
+def scrape_fiverr(final_url, gigs_count=45):
     all_gigs = []
     gigs_fetched = 0
 
@@ -230,7 +221,7 @@ def scrape_fiverr(final_url, gigs_count=40):
         time.sleep(5)
         smooth_scroll(driver)
 
-        wait_for_elements(driver)  # Wait for the gig URLs to appear
+        
         
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         gigs = []
@@ -238,15 +229,13 @@ def scrape_fiverr(final_url, gigs_count=40):
         for gig in soup.find_all('div', class_='gig-wrapper-impressions'):
             if gigs_fetched >= gigs_count:
                 break
-            
+
             skip_classes = {'pro-experience', 'agency-card-v2'}
             if any(cls in skip_classes for cls in gig.get('class', [])):
                 continue
-                        
+
             # Check if the gig has the "Fiverr's Choice" badge
             fiverr_choice_badge = gig.find('div', class_='z58z870 z58z87103 z58z871b7')
-            
-            # If Fiverr's Choice badge is found, skip the gig
             if fiverr_choice_badge:
                 continue  # Skip this gig if it's "Fiverr's Choice"
 
@@ -255,14 +244,11 @@ def scrape_fiverr(final_url, gigs_count=40):
             price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else None
 
             # Clean the price by removing commas and non-numeric characters
-            if price != None:
+            if price:
                 price = re.sub(r'[^\d]', '', price)  # Remove all non-digit characters
-                
+
             relative_gig_url = gig.select_one('a.relative')
-            if relative_gig_url:
-                gig_url = f"https://www.fiverr.com{relative_gig_url['href']}"
-            else:
-                gig_url = None
+            gig_url = f"https://www.fiverr.com{relative_gig_url['href']}" if relative_gig_url else None
 
             gig_details = {}
             attempts = 0
@@ -274,19 +260,33 @@ def scrape_fiverr(final_url, gigs_count=40):
                         break
                 attempts += 1
                 time.sleep(3)  # Optional wait between retries
-        
-            gigs.append({
+
+            # Initialize gig_data dictionary
+            gig_data = {
                 'title': title,
-                'description': gig_details.get('description', 'N/A'),
-                'sales': gig_details.get('sales_count', 'N/A'),
-                'rating': gig_details.get('rating', 'N/A'),
+                'description': gig_details.get('description', None),
+                'sales': gig_details.get('sales_count', None),
+                'rating': gig_details.get('rating', None),
                 'price': price,
-                'industry': gig_details.get('industry', 'N/A'),
-                'platform': gig_details.get('platform', 'N/A'),
-                'last_delivery': gig_details.get('last_delivery', 'N/A'),
+                'industry': gig_details.get('industry', None),
+                'platform': gig_details.get('platform', None),
+                'last_delivery': gig_details.get('last_delivery', None),
                 'seller_rank': seller_rank,
-                'member_since': gig_details.get('member_since', 'N/A')
-            })
+                'member_since': gig_details.get('member_since', None)
+            }
+
+            # Check if any required field is missing, empty, or has "N/A"
+            required_fields = [
+                'title', 'description', 'sales', 'rating', 'price',
+                'industry', 'platform', 'last_delivery', 'seller_rank', 'member_since'
+            ]
+            # Log missing fields for skipped gigs
+            missing_fields = [field for field in required_fields if gig_data.get(field) in [None, '', 'N/A']]
+            if missing_fields:
+                print(f"Skipping gig due to missing fields: {missing_fields}")
+                continue  # Skip this gig if any field is missing, empty, or "N/A"
+
+            gigs.append(gig_data)
             gigs_fetched += 1
             time.sleep(2)
 

@@ -14,9 +14,6 @@ def run_analysis(file_path):
     # Load data
     data = pd.read_csv(file_path)
 
-    # Clean Price column by removing non-numeric characters
-    data['Price'] = data['Price'].apply(lambda x: re.sub(r'[^0-9]', '', str(x))).astype(float)
-
     # NLP Analysis: Keyword extraction from Title and Description
     vectorizer_title = CountVectorizer(stop_words='english', max_features=20)
     vectorizer_desc = CountVectorizer(stop_words='english', max_features=20)
