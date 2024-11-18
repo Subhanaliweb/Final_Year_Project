@@ -40,7 +40,7 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'username' in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('search'))
 
     if request.method == 'POST':
         username, password = request.form['username'], request.form['password']
@@ -48,7 +48,7 @@ def login():
 
         if user and user.check_password(password):
             session['username'] = username
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('search'))
         flash('Invalid username or password', 'danger')
 
     return render_template('login.html')
@@ -70,7 +70,7 @@ def logout():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if 'username' in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('search'))
 
     if request.method == 'POST':
         username, password = request.form['username'], request.form['password']
@@ -86,16 +86,16 @@ def register():
 
     return render_template('register.html')
 
-# DASHBOARD ROUTE
-@app.route('/dashboard')
-def dashboard():
+# search ROUTE
+@app.route('/search')
+def search():
     if 'username' in session:
-        return render_template('dashboard.html')
+        return render_template('search.html')
     return redirect(url_for('login'))
 
-# SEARCH ROUTE
-@app.route('/search', methods=['GET'])
-def search():
+# SEARCH RESTULS ROUTE
+@app.route('/search-results', methods=['GET'])
+def search_results():
     if 'username' not in session:
         return redirect(url_for('login'))
 
@@ -105,12 +105,12 @@ def search():
     
     if not final_url:
         flash("finalUrl is required", "danger")
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('search'))
 
     # Pass finalUrl directly to the scrape function
     results = scrape_fiverr(final_url)
 
-    return render_template('search.html', results=results)
+    return render_template('search-results.html', results=results)
 
 # FUNCTION TO DELTE EXISITNG CSV
 def delete_existing_files():
@@ -209,7 +209,7 @@ def smooth_scroll(driver):
     if last_position >= scroll_height:
         return
 
-def scrape_fiverr(final_url, gigs_count=45):
+def scrape_fiverr(final_url, gigs_count=20):
     all_gigs = []
     gigs_fetched = 0
 
@@ -240,7 +240,7 @@ def scrape_fiverr(final_url, gigs_count=45):
                 continue  # Skip this gig if it's "Fiverr's Choice"
 
             title = gig.find('p', {'role': 'heading'}).text.strip() if gig.find('p', {'role': 'heading'}) else None
-            seller_rank = gig.find('p', class_='z58z872').text.strip() if gig.find('p', class_='z58z872') else None
+            seller_rank = gig.find('p', class_='z58z872').text.strip() if gig.find('p', class_='z58z872') else "New Seller"
             price = gig.find('span', class_='co-grey-1200').text.strip() if gig.find('span', class_='co-grey-1200') else None
 
             # Clean the price by removing commas and non-numeric characters

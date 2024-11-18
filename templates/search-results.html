@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search Results</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="shortcut icon" href="../static/images/favicon.png" type="image/x-icon">
+</head>
+
+<body>
+  {% include 'header.html' %}
+
+  <section class="hero">
+    <div class="container">
+      <h1>Your Search Results</h1>
+      <div class="resultCountWrapper">
+        <p>Number of gigs scraped: <span class="resultCount"></span></p>
+      </div>
+      <div class="results">
+        {% if results %}
+        <ul>
+          {% for result in results %}
+          <li>
+            <h3>{{ result.title }}</h3>
+            <p>{{ result.description }}</p>
+            <p><strong>Sales:</strong> {{ result.sales }}</p>
+            <p><strong>Rating:</strong> {{ result.rating }}</p>
+            <p><strong>Industry:</strong> {{ result.industry }}</p>
+            <p><strong>Platform:</strong> {{ result.platform }}</p>
+            <p><strong>Last Delivery:</strong> {{ result.last_delivery }}</p>
+            <p><strong>Seller Rank:</strong> {{ result.seller_rank }}</p>
+            <p><strong>Member Since:</strong> {{ result.member_since }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p>No results found.</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  {% include 'footer.html' %}
+</body>
+
+</html>

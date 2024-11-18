@@ -17,6 +17,7 @@
 
             <div class="analysisBtnWrapper">
                 <h1>View Analysis</h1>
+                <p>View the analysis of the original data collected from the scrape.</p>
                 <div>
                     <button id="run-nlp-regression" class="btn" onclick="runNLPRegression('scraped_gigs.csv')">Run
                         Analysis</button>
@@ -24,6 +25,7 @@
             </div>
 
             <h2>Select Criteria for Analysis</h2>
+            <p>Apply filters to customize your analysis based on specific criteria such as keywords, seller type, and location.</p>
             <form id="analysisFiltersForm">
                 <div class="analysisFiltersWrapper">
                     <div>
@@ -83,52 +85,7 @@
         </div>
     </section>
 
-
-
     {% include 'footer.html' %}
-
-    <script>
-        $("#analysisFiltersForm").on("submit", function (e) {
-            e.preventDefault();
-
-            // Gather the selected filter data
-            const listingsStarted = document.getElementById('listings-started').value;
-            const salesCount = document.getElementById('sales-count').value;
-            const rating = document.getElementById('rating').value;
-
-            // Check if all filters are empty
-            if (!listingsStarted && !salesCount && !rating) {
-                setTimeout(function () {
-                    alert("No filters applied!");
-                }, 1000);
-                return; // Stop the submission
-            }
-
-            // Prepare the data payload
-            const filterData = {
-                listings_started: listingsStarted,
-                sales_count: salesCount,
-                rating: rating
-            };
-            console.log(filterData);
-
-            // Send the data via AJAX to the /custom-filters route
-            $.ajax({
-                url: '/custom-filters',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(filterData),
-                success: function (response) {
-                    console.log('Server response:', response);
-                    alert("Filters applied successfully!");
-                },
-                error: function (xhr, status, error) {
-                    console.error('Error:', error);
-                    alert("An error occurred while applying the filters.");
-                }
-            });
-        });
-    </script>
 </body>
 
 </html>

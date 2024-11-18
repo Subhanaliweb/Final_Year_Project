@@ -25,18 +25,19 @@
   background: #555;
 }
 body {
-  background: radial-gradient(
+  /* background: radial-gradient(
     circle at 24.1% 68.8%,
     rgb(26, 26, 26) 0%,
     rgb(0, 0, 0) 99.4%
-  );
+  ); */
   background-repeat: no-repeat;
+  background-image: url(../images/bg.webp);
   background-size: cover;
   position: relative;
 }
 body::before{
-  background-image: url(../images/lines.svg);
   background-size: contain;
+  background-color: black;
   background-repeat: repeat-x;
   background-position: center center;
   position: absolute;
@@ -45,8 +46,12 @@ body::before{
   width: 100%;
   height: 100%;
   content: '';
-  opacity: 0.1;
+  opacity: 0.8;
   z-index: -1;
+}
+p{
+  font-size: 16px;
+  line-height: 28px;
 }
 a,
 p,
@@ -128,6 +133,9 @@ header .container {
   font-weight: 600;
   text-decoration: none;
 }
+footer {
+  background-color: black;
+}
 footer .container {
   padding: 20px 0px;
   text-align: center;
@@ -178,7 +186,6 @@ h2 {
 }
 .basicParagraph {
   text-align: center;
-  font-size: 16px;
   line-height: 30px;
   margin-bottom: 30px;
 }
@@ -271,7 +278,6 @@ h4 {
 }
 .formDiv form button {
   width: 100%;
-  font-size: 16px;
 }
 .formDiv a {
   color: var(--blue);
@@ -337,15 +343,24 @@ h4 {
   margin-bottom: 20px;
   font-size: 16px;
 }
-.dashboardForms {
+.searchFormWrapper {
   display: flex;
   gap: 50px;
+  justify-content: center;
 }
-.dashboardPage .formDiv {
+.searchPage .formDiv {
   width: 600px;
 }
-.dashboardForms button {
+.searchFormWrapper button {
   margin-top: 10px;
+}
+.searchWelcome{
+  margin-bottom: 30px;
+  text-align: center;
+}
+.searchWelcome p{
+  width: 60%;
+  margin: 0 auto;
 }
 .userName {
   color: var(--blue);
@@ -374,8 +389,6 @@ h4 {
 }
 .results li p {
   margin-bottom: 10px;
-  line-height: 24px;
-  font-size: 15px;
 }
 .results {
   border: 1px solid #3e3e3e;
@@ -405,7 +418,11 @@ h4 {
   padding: 100px 10px;
 }
 .analysisSection h2 {
-  margin-bottom: 40px;
+  margin-bottom: 20px;
+}
+.analysisSection p{
+  text-align: center;
+  margin-bottom: 30px
 }
 .analysisFiltersWrapper {
   background-color: var(--gray);
