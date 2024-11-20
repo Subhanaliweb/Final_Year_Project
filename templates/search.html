@@ -27,9 +27,9 @@
             <h4>Search here</h4>
 
             <form action="{{ url_for('search_results') }}" method="get" id="listingForm">
-              <input type="text" name="keywords" id="keywords" placeholder="Keywords" />
+              <input type="text" name="keywords" id="keywords" placeholder="Enter Keywords" />
               <div class="checkboxes">
-                <label class="sellerTypesLabel">Seller Types:</label>
+                <label class="sellerTypesLabel">Select Seller Level(s):</label>
                 <div class="checkboxesInner">
                   <div>
                     <input type="checkbox" name="seller_types[]" id="checkbox1" value="level_one_seller" />
@@ -50,7 +50,7 @@
                 </div>
               </div>
               <div class="checkboxes">
-                <label class="sellerTypesLabel">Seller Locations:</label>
+                <label class="sellerTypesLabel">Select Seller Location(s):</label>
                 <div class="checkboxesInner">
                   <div>
                     <input type="checkbox" name="seller_countries[]" id="checkbox1Location" value="" />

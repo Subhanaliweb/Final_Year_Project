@@ -9,23 +9,24 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
 
-<body>
+<body class="analysisPage">
     {% include 'header.html' %}
 
-    <section class="analysisSection">
+    <section class="hero">
         <div class="container">
 
             <div class="analysisBtnWrapper">
                 <h1>View Analysis</h1>
                 <p>View the analysis of the original data collected from the scrape.</p>
                 <div>
-                    <button id="run-nlp-regression" class="btn" onclick="runNLPRegression('scraped_gigs.csv')">Run
+                    <!-- <button id="run-nlp-regression" class="btn" onclick="runNLPRegression('scraped_gigs.csv')">View -->
+                    <button id="run-nlp-regression" class="btn" onclick="handleFileOperation('scraped_gigs.csv', 'nlp-regression');">View
                         Analysis</button>
                 </div>
             </div>
 
             <h2>Select Criteria for Analysis</h2>
-            <p>Apply filters to customize your analysis based on specific criteria such as keywords, seller type, and location.</p>
+            <p>Apply filters to customize your analysis based on specific criteria such as listing started, sales, and rating.</p>
             <form id="analysisFiltersForm">
                 <div class="analysisFiltersWrapper">
                     <div>
@@ -47,7 +48,7 @@
                         </div>
 
                         <div class="analysisFilter filter2">
-                            <h5>Sales Count</h5>
+                            <h5>Sales</h5>
                             <form action="">
                                 <select id="sales-count">
                                     <option value="">Select</option>
@@ -67,12 +68,11 @@
                             <h5>Rating</h5>
                             <select id="rating">
                                 <option value="">Select</option>
+                                <option value="4.9">Above 4.9</option>
                                 <option value="4.8">Above 4.8</option>
                                 <option value="4.5">Above 4.5</option>
                                 <option value="4.0">Above 4.0</option>
                                 <option value="3.5">Above 3.5</option>
-                                <option value="3.0">Above 3.0</option>
-                                <option value="2.5">Above 2.5</option>
                             </select>
                         </div>
                     </div>
@@ -80,7 +80,8 @@
                 </div>
             </form>
             <div class="viewFilteredBtnWrapper">
-                <a class="btn" onclick="filteredResults('filtered_gigs.csv')">View Filtered Analysis</a>
+                <!-- <a class="btn" onclick="filteredResults('filtered_gigs.csv')">View Filtered Analysis</a> -->
+                <a class="btn" onclick="handleFileOperation('filtered_gigs.csv', 'filtered-results')">View Filtered Analysis</a>
             </div>
         </div>
     </section>

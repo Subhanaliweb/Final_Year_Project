@@ -7,7 +7,7 @@
 }
 /* width */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
 }
 
 /* Track */
@@ -31,22 +31,39 @@ body {
     rgb(0, 0, 0) 99.4%
   ); */
   background-repeat: no-repeat;
-  background-image: url(../images/bg.webp);
+  background-color: black;
   background-size: cover;
+  background-position:  center center;
   position: relative;
 }
 body::before{
-  background-size: contain;
+  background: url("../images/ai.webp");
+  background-size: 50%;
   background-color: black;
-  background-repeat: repeat-x;
-  background-position: center center;
+  background-position: left 40% ;
+  background-repeat: no-repeat;
   position: absolute;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
   content: '';
-  opacity: 0.8;
+  opacity: 0.15;
+  z-index: -2;
+}
+body::after{
+  background: url("../images/bg.webp");
+  background-size: cover;
+  background-color: black;
+  background-position: center center;
+  background-repeat: no-repeat;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  content: '';
+  opacity: 0.15;
   z-index: -1;
 }
 p{
@@ -66,7 +83,7 @@ label {
 }
 :root {
   --main-color: #1a1a1a;
-  --blue: #2dd8e7;
+  --cyan: #00FFFF;
   --green: #7cfc00;
   --gray: #1d1d1d;
 }
@@ -74,7 +91,7 @@ label {
   text-align: center;
 }
 .alert.alert-success {
-  color: var(--blue);
+  color: var(--cyan);
 }
 .alert.alert-danger,
 .flash-message.danger {
@@ -120,7 +137,7 @@ header .container {
   font-weight: 500;
 }
 .headerMenu a:hover {
-  color: var(--blue);
+  color: var(--cyan);
 }
 .headerRightCol {
   display: flex;
@@ -129,9 +146,12 @@ header .container {
 }
 .logo {
   color: #e0e0e0;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
   text-decoration: none;
+}
+.logo:hover {
+  color: var(--cyan);
 }
 footer {
   background-color: black;
@@ -148,25 +168,25 @@ footer .container {
 }
 
 .btn {
-  background-color: #e0e0e0;
   border-radius: 100px;
   padding: 15px 45px;
-  color: black;
   text-decoration: none;
   min-width: 150px;
   text-align: center;
   border: 0;
   cursor: pointer;
   transition: all 0.3s;
-  border: 1px solid #e0e0e0;
   display: inline-block;
   font-size: 16px;
   font-weight: 500;
+  background-color: #e0e0e0;
+  color: black;
+  border: 1px solid #e0e0e0;
 }
 .btn:hover {
-  background-color: #1a1a1a;
+  background-color: black;
   color: #e0e0e0;
-  border: 1px solid #e0e0e0;
+  border-color: #e0e0e0;
 }
 h1 {
   font-size: 50px;
@@ -183,6 +203,9 @@ h2 {
 .mainHeading {
   font-size: 70px;
   line-height: 80px;
+}
+.mainHeading span{
+  color: var(--cyan);
 }
 .basicParagraph {
   text-align: center;
@@ -205,7 +228,7 @@ h4 {
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
-  min-height: calc(100vh - 151px);
+  min-height: calc(100vh - 160px);
   padding: 60px 10px 100px 10px;
   display: flex;
   align-items: center;
@@ -217,20 +240,20 @@ h4 {
   z-index: 2;
 }
 
-.hero::before {
-  /* background-image: url('../images/lines.svg'); */
-  left: 0;
-  background-size: contain;
+/* .hero::before {
+  background: url("../images/ai.webp");
+  right: 0;
+  background-size: 50%;
   background-repeat: no-repeat;
-  background-position: right bottom;
-  opacity: 0.5;
+  background-position: center center;
+  opacity: 0.2;
   top: 0;
   position: absolute;
   content: "";
   width: 100%;
   height: 100%;
   z-index: -1;
-}
+} */
 /* body.home .hero .btn {
   border-color: #E0E0E0;
 } */
@@ -280,7 +303,7 @@ h4 {
   width: 100%;
 }
 .formDiv a {
-  color: var(--blue);
+  color: var(--cyan);
 }
 .formBottomDiv {
   display: flex;
@@ -301,7 +324,7 @@ h4 {
   margin-bottom: 20px !important;
 }
 .checkboxes > div input:checked{
-  accent-color: var(--blue);
+  accent-color: var(--cyan);
 }
 .checkboxes > div {
   display: flex;
@@ -318,11 +341,12 @@ h4 {
 .checkboxes > div input {
   width: fit-content;
   margin: 0;
+  cursor: pointer;
 }
 .checkboxes .sellerTypesLabel {
   display: block;
   margin-bottom: 10px !important;
-  font-size: 16px !important;
+  font-size: 14px !important;
   font-weight: 600 !important;
 }
 .checkboxesInner {
@@ -363,7 +387,7 @@ h4 {
   margin: 0 auto;
 }
 .userName {
-  color: var(--blue);
+  color: var(--cyan);
   text-transform: capitalize;
 }
 .searchForm h4 {
@@ -377,7 +401,7 @@ h4 {
 .resultCountWrapper p {
   text-align: center;
   font-size: 20px;
-  color: var(--blue);
+  color: var(--cyan);
 }
 .resultCountWrapper p span {
   font-weight: bold;
@@ -410,17 +434,11 @@ h4 {
 .results li:last-child {
   border-bottom: 0px;
 }
-.analysisSection {
-  /* background: url("../images/hero-bg.jpg"); */
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  padding: 100px 10px;
-}
-.analysisSection h2 {
+
+.analysisPage h2 {
   margin-bottom: 20px;
 }
-.analysisSection p{
+.analysisPage p{
   text-align: center;
   margin-bottom: 30px
 }

@@ -4,10 +4,6 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 from fake_useragent import UserAgent
 from dotenv import load_dotenv
 import requests
@@ -17,7 +13,6 @@ import time
 import csv
 import subprocess
 import re
-from urllib.parse import urlparse, parse_qs
 
 load_dotenv()
 
@@ -185,21 +180,25 @@ def save_to_csv(gigs):
 
 
 
+# Setup Selenium WebDriver
 def setup_selenium_driver():
     options = Options()
     options.add_argument("--start-maximized")
-    options.add_argument("--disable-gpu")  # Disable GPU rendering
-    options.add_argument("--ignore-certificate-errors")  # Ignore SSL errors
-    options.headless = False   # Set to False for visible browser window
-    service = Service(executable_path='C:/chromedriver/chromedriver.exe')  # Update path to chromedriver
+    options.add_argument("--disable-gpu")
+    options.add_argument("--ignore-certificate-errors")
+    options.add_experimental_option("detach", False)  # Ensure driver exits completely
+    service = Service(executable_path="C:/chromedriver/chromedriver.exe")
     driver = webdriver.Chrome(service=service, options=options)
+
+    # Add custom method to stop the service
+    driver.stop_service = lambda: service.stop()
     return driver
 
 def smooth_scroll(driver):
     last_position = driver.execute_script("return window.pageYOffset;")
     while True:
         driver.execute_script("window.scrollBy(0, 250);")
-        time.sleep(2)
+        time.sleep(0.5)
         new_position = driver.execute_script("return window.pageYOffset;")
         if new_position == last_position:
             break
@@ -221,8 +220,6 @@ def scrape_fiverr(final_url, gigs_count=20):
         time.sleep(5)
         smooth_scroll(driver)
 
-        
-        
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         gigs = []
 
@@ -288,30 +285,30 @@ def scrape_fiverr(final_url, gigs_count=20):
 
             gigs.append(gig_data)
             gigs_fetched += 1
-            time.sleep(2)
+            time.sleep(random.uniform(1, 2))
 
         all_gigs.extend(gigs)
-        time.sleep(random.uniform(2, 4))
-
-        driver.quit()
 
     except Exception as e:
         print(f"Error during scraping: {e}")
+
+    finally:
+        try:
+            driver.close()
+        except Exception:
+            pass
+        finally:
+            driver.quit()
+            driver.stop_service()
 
     save_to_csv(all_gigs)
     return all_gigs
 
 def parse_sales_count(sales_text):
-    """
-    Parses sales count strings like '2.5k' or '1.5M' to integers.
-    'k' means thousands, 'M' means millions.
-    """
-    if 'k' in sales_text.lower():
-        return int(float(sales_text.replace('k', '').replace('K', '').strip()) * 1000)
-    elif 'm' in sales_text.lower():
-        return int(float(sales_text.replace('m', '').replace('M', '').strip()) * 1000000)
-    else:
-        return int(sales_text.strip().replace(',', ''))  # Clean commas and convert
+    sales_text = sales_text.lower().strip()
+    multiplier = 1000 if 'k' in sales_text else 1000000 if 'm' in sales_text else 1
+    return int(float(sales_text.rstrip('km')) * multiplier)
+
 
 def scrape_gig_details(gig_url):
     try:

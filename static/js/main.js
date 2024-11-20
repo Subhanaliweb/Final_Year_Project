@@ -101,39 +101,20 @@ jQuery(document).ready(function () {
   });
 
 });
+function handleFileOperation(filePath, operation) {
+  const endpoints = {
+    'nlp-regression': '/run-nlp-regression',
+    'filtered-results': '/view-filtered-results'
+  };
 
-function runNLPRegression(filePath) {
-  fetch('/run-nlp-regression', {
+  fetch(endpoints[operation], {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ file_path: filePath })
   })
     .then(response => response.json())
     .then(data => {
-      alert(data.message);  // Success message
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('Something went wrong: ' + error.message);
-    });
-}
-
-// Filtered results function
-function filteredResults(filePath) {
-  // Assuming filteredDataFilePath is the path of the filtered CSV file
-
-  fetch('/view-filtered-results', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ file_path: filePath })
-  })
-    .then(response => response.json())
-    .then(data => {
-      alert(data.message);  // Success message for filtered results
+      alert(data.message); // Success message
     })
     .catch(error => {
       console.error('Error:', error);
