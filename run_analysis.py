@@ -1,6 +1,4 @@
 import pandas as pd
-import re
-import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 from textblob import TextBlob
 import matplotlib.pyplot as plt
@@ -11,6 +9,7 @@ import time
 import sys
 
 def run_analysis(file_path):
+    
     # Load data
     data = pd.read_csv(file_path)
 

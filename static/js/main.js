@@ -12,7 +12,7 @@ jQuery(document).ready(function () {
 
   // Search Page JS
   $("#listingForm").on("submit", function (e) {
-    e.preventDefault();  // Prevent form submission from refreshing the page
+    e.preventDefault();  
 
     let form = $(this);
     let formData = new FormData(this);
@@ -24,35 +24,31 @@ jQuery(document).ready(function () {
     }
 
     let sellerTypes = formData.getAll("seller_types[]");
-    let sellerCountries = formData.getAll("seller_countries[]").filter(val => val); // Exclude empty values (e.g., "All")
+    let sellerCountries = formData.getAll("seller_countries[]").filter(val => val); 
 
-    // Build the 'ref' parameter
     let filterParameters = [];
     if (sellerTypes.length > 0) {
-      filterParameters.push("seller_level%3A" + sellerTypes.join("%2C")); // Join types with commas
+      filterParameters.push("seller_level%3A" + sellerTypes.join("%2C")); 
     }
     if (sellerCountries.length > 0) {
-      filterParameters.push("seller_location%3A" + sellerCountries.join("%2C")); // Join countries with commas
+      filterParameters.push("seller_location%3A" + sellerCountries.join("%2C")); 
     }
 
     let refParam = filterParameters.length > 0 ? "&ref=" + filterParameters.join("%7C") : "";
 
-    // Include 'source=drop_down_filters' only if filters are applied
     let sourceParam = filterParameters.length > 0 ? "&source=drop_down_filters" : "";
 
     // Final URL
     let finalUrl = `https://www.fiverr.com/search/gigs?query=${encodeURIComponent(keywords)}${sourceParam}${refParam}`;
 
-    // Append finalUrl to form data
     let finalUrlInput = $('<input>').attr({
       type: 'hidden',
       name: 'finalUrl',
       value: finalUrl
     });
 
-    form.append(finalUrlInput); // Add the hidden input to the form
+    form.append(finalUrlInput);
 
-    // Now submit the form with the finalUrl parameter included
     form.off('submit').submit();
 
   });
@@ -62,20 +58,17 @@ jQuery(document).ready(function () {
   $("#analysisFiltersForm").on("submit", function (e) {
     e.preventDefault();
 
-    // Gather the selected filter data
     const listingsStarted = document.getElementById('listings-started').value;
     const salesCount = document.getElementById('sales-count').value;
     const rating = document.getElementById('rating').value;
 
-    // Check if all filters are empty
     if (!listingsStarted && !salesCount && !rating) {
       setTimeout(function () {
         alert("No filters applied!");
       }, 1000);
-      return; // Stop the submission
+      return; 
     }
 
-    // Prepare the data payload
     const filterData = {
       listings_started: listingsStarted,
       sales_count: salesCount,
@@ -83,7 +76,6 @@ jQuery(document).ready(function () {
     };
     console.log(filterData);
 
-    // Send the data via AJAX to the /custom-filters route
     $.ajax({
       url: '/custom-filters',
       type: 'POST',
@@ -93,7 +85,7 @@ jQuery(document).ready(function () {
         console.log('Server response:', response);
         alert("Filters applied successfully!");
       },
-      error: function (xhr, status, error) {
+      error: function (error) {
         console.error('Error:', error);
         alert("An error occurred while applying the filters.");
       }
@@ -114,7 +106,7 @@ function handleFileOperation(filePath, operation) {
   })
     .then(response => response.json())
     .then(data => {
-      alert(data.message); // Success message
+      alert(data.message); 
     })
     .catch(error => {
       console.error('Error:', error);

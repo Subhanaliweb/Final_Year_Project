@@ -212,7 +212,7 @@ def smooth_scroll(driver):
     if last_position >= scroll_height:
         return
 
-def scrape_fiverr(final_url, gigs_count=20):
+def scrape_fiverr(final_url, gigs_count=35):
     all_gigs = []
     gigs_fetched = 0
 
@@ -253,14 +253,14 @@ def scrape_fiverr(final_url, gigs_count=20):
 
             gig_details = {}
             attempts = 0
-            while attempts < 3:
+            while attempts < 2:
                 if gig_url:
-                    time.sleep(3)
+                    time.sleep(2)
                     gig_details = scrape_gig_details(gig_url)
                     if gig_details:  # Check if data was successfully fetched
                         break
                 attempts += 1
-                time.sleep(3)  # Optional wait between retries
+                time.sleep(2)  # Optional wait between retries
 
             # Initialize gig_data dictionary
             gig_data = {

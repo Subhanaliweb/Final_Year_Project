@@ -452,7 +452,20 @@ h4 {
 }
 
 /* Responsive */
-
+@media screen and (max-width: 1024px) {
+  .logo {
+    text-align: left;
+  }
+  .mainHeading {
+    font-size: 60px;
+  }
+  .hero .basicParagraph {
+    width: 100%;
+  }
+  .searchWelcome p {
+    width: 100%;
+  }
+}
 @media screen and (max-width: 767px) {
   .logo {
     font-size: 18px;
@@ -468,6 +481,7 @@ h4 {
   }
   .hamburger {
     display: block;
+    color: white;
   }
   header .btn {
     padding: 8px 15px;
@@ -477,7 +491,7 @@ h4 {
     font-size: 14px !important;
   }
   header .logo {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .headerRightCol {
@@ -497,8 +511,11 @@ h4 {
     background-color: #e0e0e0;
     left: 50%;
     transform: translateX(-50%);
-    top: 12%;
-    width: 80%;
+    top: 100%;
+    width: 100%;
+  }
+  nav.headerMenu ul li a {
+    color: black;
   }
 
   .mainHeading {
@@ -511,6 +528,9 @@ h4 {
   }
   h1 {
     font-size: 33px;
+  }
+  h2 {
+    font-size: 28px;
   }
   .mainHeading {
     font-size: 48px;
@@ -526,7 +546,9 @@ h4 {
     width: 100%;
   }
   .results {
-    padding: 20px;
+    padding: 10px;
+    width: 90vw;
+    margin: 0 auto;
   }
   .results li h3 {
     margin-bottom: 10px;
@@ -537,5 +559,20 @@ h4 {
     margin-bottom: 10px;
     line-height: 24px;
     font-size: 14px;
+    word-wrap: break-word;
+  }
+
+  .searchPage .formDiv {
+    width: 100%;
+  }
+  .analysisFiltersWrapper {
+    max-width: 100%;
+  }
+  .analysisFiltersWrapper select {
+    width: 100%;
+  }
+  .analysisFiltersWrapper > div {
+    flex-direction: column;
+    gap: 20px;
   }
 }
