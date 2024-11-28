@@ -1,21 +1,15 @@
 import pandas as pd
-import re
-import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 from textblob import TextBlob
 import matplotlib.pyplot as plt
 import plotly.express as px
-import plotly.graph_objects as go
 import seaborn as sns
 import time
+import sys
 
-def run_analysis():
+def run_analysis(file_path):
     # Load data
-    file_path = 'scraped_gigs.csv'  # Change to your file path
     data = pd.read_csv(file_path)
-
-    # Clean Price column by removing non-numeric characters
-    data['Price'] = data['Price'].apply(lambda x: re.sub(r'[^0-9]', '', str(x))).astype(float)
 
     # NLP Analysis: Keyword extraction from Title and Description
     vectorizer_title = CountVectorizer(stop_words='english', max_features=20)
@@ -40,35 +34,13 @@ def run_analysis():
     data['Desc_Keyword_Count'] = desc_keywords_matrix.sum(axis=1).A1
 
     # Convert 'Last Delivery' to numeric days for time analysis
-    data['Last Delivery (days)'] = data['Last Delivery'].apply(
-        lambda x: int(re.search(r'\d+', x).group()) if pd.notnull(x) else np.nan
-    )
+    data['Last Delivery (days)'] = pd.to_numeric(data['Last Delivery'], errors='coerce')
 
     # Correlation analysis between Sales, Rating, Price, and keyword counts
     correlation_matrix = data[['Sales', 'Rating', 'Price', 'Title_Keyword_Count', 
-                            'Desc_Keyword_Count', 'Last Delivery (days)']].corr()
+                                'Desc_Keyword_Count', 'Last Delivery (days)']].corr()
 
-    # Regression Analysis (Optional)
-    from sklearn.model_selection import train_test_split
-    from sklearn.linear_model import LinearRegression
-    from sklearn.metrics import mean_squared_error, r2_score
-
-    # Define features and target variable for regression
-    X = data[['Rating', 'Price', 'Title_Keyword_Count', 'Desc_Keyword_Count']]
-    y = data['Sales']
-
-    # Split data into training and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-    # Initialize and train regression model
-    model = LinearRegression()
-    model.fit(X_train, y_train)
-
-    # Make predictions and evaluate
-    y_pred = model.predict(X_test)
-
-    # --- 1. Bar Chart for Top Keywords in Titles and Descriptions ---
-    # Title Keywords Bar Chart
+    # --- 1. Bar Chart for Top Keywords in Titles ---
     plt.figure(figsize=(10, 6))
     plt.bar(title_keywords.keys(), title_keywords.values(), color='skyblue')
     plt.title('Top Keywords in Titles')
@@ -78,7 +50,7 @@ def run_analysis():
     plt.tight_layout()
     plt.show()
 
-    # Description Keywords Bar Chart
+    # --- 2. Bar Chart for Top Keywords in Descriptions ---
     plt.figure(figsize=(10, 6))
     plt.bar(desc_keywords.keys(), desc_keywords.values(), color='salmon')
     plt.title('Top Keywords in Descriptions')
@@ -88,35 +60,54 @@ def run_analysis():
     plt.tight_layout()
     plt.show()
 
-    # --- 2. Correlation Heatmap ---
+    # --- 3. Correlation Heatmap ---
     plt.figure(figsize=(8, 6))
     sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f")
     plt.title('Correlation Matrix')
     plt.show()
+    time.sleep(2)
 
-    # --- 3. Regression Results Scatter Plot ---
-    # Scatter plot for actual vs predicted Sales
-    y_pred_series = pd.Series(y_pred, index=y_test.index)
-
-    fig = px.scatter(x=y_test, y=y_pred_series, labels={'x': 'Actual Sales', 'y': 'Predicted Sales'},
-                    title='Actual vs Predicted Sales')
-    fig.add_trace(go.Scatter(x=y_test, y=y_test, mode='lines', name='Ideal Fit'))
-    time.sleep(1)
-    fig.show()
-
-    # --- 4. Sales Distribution by Keyword Counts ---
+    # --- 4. Sales Distribution by Title Keyword Count ---
     fig = px.scatter(data, x='Title_Keyword_Count', y='Sales', color='Rating',
-                    title="Sales by Title Keyword Count",
-                    labels={'Title_Keyword_Count': 'Keyword Count in Title', 'Sales': 'Total Sales'})
+                     title="Sales by Title Keyword Count",
+                     labels={'Title_Keyword_Count': 'Keyword Count in Title', 'Sales': 'Total Sales'})
     time.sleep(2)
     fig.show()
 
-
+    # --- 5. Sales Distribution by Description Keyword Count ---
     fig = px.scatter(data, x='Desc_Keyword_Count', y='Sales', color='Price',
-                    title="Sales by Description Keyword Count",
-                    labels={'Desc_Keyword_Count': 'Keyword Count in Description', 'Sales': 'Total Sales'})
-    time.sleep(3)
+                     title="Sales by Description Keyword Count",
+                     labels={'Desc_Keyword_Count': 'Keyword Count in Description', 'Sales': 'Total Sales'})
+    time.sleep(2)
     fig.show()
 
+    # --- 6. Sales vs. Delivery Time Scatter Plot ---
+    fig = px.scatter(data, x='Last Delivery (days)', y='Sales', color='Rating',
+                     title="Sales by Delivery Time",
+                     labels={'Last Delivery (days)': 'Delivery Time (days)', 'Sales': 'Total Sales'})
+    time.sleep(2)
+    fig.show()
+
+    # --- 7. Keyword-Sales Contribution Analysis ---
+    top_keywords_sales = data[['Title', 'Sales']].copy()
+    top_keywords_sales['Top Keyword'] = top_keywords_sales['Title'].apply(
+        lambda x: max(vectorizer_title.get_feature_names_out(), key=lambda kw: x.lower().count(kw), default="None")
+    )
+    keyword_sales_summary = top_keywords_sales.groupby('Top Keyword')['Sales'].sum().sort_values(ascending=False)
+
+    plt.figure(figsize=(10, 6))
+    keyword_sales_summary[:10].plot(kind='bar', color='lightgreen')
+    plt.title('Top Keywords by Sales Contribution')
+    plt.xlabel('Keyword')
+    plt.ylabel('Total Sales')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+
 if __name__ == '__main__':
-    run_analysis()
+    if len(sys.argv) < 2:
+        print("Error: Missing file path argument.")
+        sys.exit(1)
+    # Get file path from command line arguments
+    file_path = sys.argv[1]
+    run_analysis(file_path)
